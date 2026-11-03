@@ -1,0 +1,153 @@
+{% doc %}
+  Delivery and in-store options under Add to Bag (Michael Hill):
+  - DELIVERY: online stock for the selected variant and free shipping.
+  - IN-STORE: the shopper's store (Set My Store) with Click & Collect and Reserve In-Store. The store
+    comes from localStorage, so `<my-store-details>` fills it in on the client. With "Store stock"
+    on, availability comes from the store's Shopify location (variant.store_availabilities, which
+    only lists locations with local pickup); otherwise it follows online stock.
+
+  Wrap it in `data-variant-region` so the stock message follows the selected variant.
+
+  @example
+  {%- content_for 'block', type: 'mh-fulfilment', id: 'fulfilment' -%}
+{% enddoc %}
+
+{%- liquid
+  assign product_resource = closest.product
+  assign dropdown_options = 'Ring Size,Length,Bangle Size,Letter' | split: ','
+  assign variant = product_resource.selected_variant
+
+  # Sizes start unselected (see _product-variant-picker), so there is no stock to show until one is chosen.
+  assign needs_size = false
+  if variant == blank
+    for option in product_resource.options_with_values
+      if dropdown_options contains option.name and option.values.size > 1
+        assign needs_size = true
+        assign size_name = option.name | downcase
+      endif
+    endfor
+    assign variant = product_resource.selected_or_first_available_variant
+  endif
+
+  assign special_order = variant.metafields.pdp.special_order.value
+  assign lead_time = product_resource.metafields.pdp.special_order_lead_time.value
+  assign available = variant.available
+  if needs_size
+    assign available = ''
+  endif
+-%}
+
+<div
+  class="flex flex-col border-b border-border-divider-primary pt-2"
+  {{ block.shopify_attributes }}
+>
+  <div class="flex flex-col gap-3 border-b border-border-divider-primary py-4">
+    <p>
+      <span class="text-xs/[1.2] uppercase">Delivery:</span>
+      {% if needs_size -%}
+        Select a {{ size_name }} to see stock availability
+      {%- elsif special_order -%}
+        Made to order
+        {%- if lead_time != blank %}, ships in approximately {{ lead_time }} days{% endif %}
+      {%- elsif variant.available -%}
+        <span class="font-bold">Ready to ship</span>
+        <span class="font-bold text-success">In stock</span>
+      {%- else -%}
+        Sold out online
+      {%- endif %}
+    </p>
+    <ul class="flex flex-col gap-3 pl-8">
+      {%- if block.settings.shipping_text != blank -%}
+        <li class="flex items-center gap-3">
+          {%- render 'core-icons', type: 'truck', class: 'size-6 shrink-0' -%}
+          {{ block.settings.shipping_text }}
+        </li>
+      {%- endif -%}
+    </ul>
+  </div>
+
+  <my-store-details
+    class="flex flex-col gap-3 py-4"
+    data-available="{{ available }}"
+    {% if block.settings.store_stock and needs_size == false %}
+      data-store-stock
+    {% endif %}
+  >
+    {%- if block.settings.store_stock and needs_size == false -%}
+      <script type="application/json" data-store-availability>
+        {
+          {%- for availability in variant.store_availabilities -%}
+            {{ availability.location.id | append: '' | json }}: { "available": {{ availability.available }} }
+            {%- unless forloop.last -%},{%- endunless -%}
+          {%- endfor -%}
+        }
+      </script>
+    {%- endif -%}
+    <p>
+      <span class="text-xs/[1.2] uppercase">In-store:</span>
+      <button
+        type="button"
+        class="underline underline-offset-4 hover:text-accent-1"
+        data-store-picker-open
+      >
+        <my-store-name>Set My Store</my-store-name>
+      </button>
+    </p>
+    <p class="font-bold empty:hidden" data-store-stock-status></p>
+    <p class="pl-8 body-small text-secondary" data-store-summary>
+      Please set a store for Click &amp; Collect and Reserve In-Store availability.
+    </p>
+    <ul class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-4 pl-8">
+      <li class="col-span-2 grid grid-cols-subgrid">
+        <span class="flex items-start gap-3">
+          {%- render 'core-icons', type: 'bag', class: 'size-6 shrink-0' -%}
+          <span class="flex flex-col gap-0.5">
+            Click &amp; Collect
+            <span
+              class="flex items-center gap-1.5 body-small empty:hidden"
+              data-click-collect-status
+            ></span>
+          </span>
+        </span>
+        <span class="pt-0.5 body-small empty:hidden" data-click-collect-message></span>
+      </li>
+      <li class="col-span-2 grid grid-cols-subgrid">
+        <span class="flex items-start gap-3">
+          {%- render 'core-icons', type: 'store', class: 'size-6 shrink-0' -%}
+          <span class="flex flex-col gap-0.5">
+            Reserve In-Store
+            <span
+              class="flex items-center gap-1.5 body-small empty:hidden"
+              data-reserve-status
+            ></span>
+          </span>
+        </span>
+        <span class="pt-0.5 body-small empty:hidden" data-reserve-message></span>
+      </li>
+    </ul>
+  </my-store-details>
+</div>
+
+{% schema %}
+{
+  "name": "Delivery & in-store",
+  "settings": [
+    { "type": "header", "content": "Delivery" },
+    {
+      "type": "text",
+      "id": "shipping_text",
+      "label": "Shipping",
+      "default": "Free shipping on orders over $100"
+    },
+    { "type": "header", "content": "In-store" },
+    {
+      "type": "checkbox",
+      "id": "store_stock",
+      "label": "Store stock",
+      "info": "Show Click & Collect and Reserve In-Store availability from each store's Shopify location. Off: follow online stock. Turn on once store inventory is synced.",
+      "default": false
+    }
+  ],
+  "presets": [{ "name": "Delivery & in-store", "category": "Product" }]
+}
+{% endschema %}
