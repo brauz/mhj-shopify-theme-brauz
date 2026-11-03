@@ -111,7 +111,7 @@
         </span>
         <span class="pt-0.5 body-small empty:hidden" data-click-collect-message></span>
       </li>
-      <li class="col-span-2 grid grid-cols-subgrid">
+      <li class="col-span-2 grid grid-cols-subgrid" data-reserve-option>
         <span class="flex items-start gap-3">
           {%- render 'core-icons', type: 'store', class: 'size-6 shrink-0' -%}
           <span class="flex flex-col gap-0.5">
@@ -120,6 +120,26 @@
               class="flex items-center gap-1.5 body-small empty:hidden"
               data-reserve-status
             ></span>
+            {%- comment -%}
+              Kept outside the data-reserve-* elements, which my-store-details rewrites. Availability is
+              only known client-side: my-store-details fills data-reserve-message only when the shopper's
+              store has the item (not when unavailable, no store is set or a size isn't chosen), so the
+              button is shown only then.
+            {%- endcomment -%}
+            {%- if block.settings.reserve_in_store -%}
+              <style>
+                [data-reserve-option] [data-brauz-ris-open] { display: none; }
+                [data-reserve-option]:has([data-reserve-message]:not(:empty)) [data-brauz-ris-open] { display: block; }
+              </style>
+              <button
+                type="button"
+                class="self-start body-small underline underline-offset-4 hover:text-accent-1"
+                data-brauz-ris-open
+              >
+                Reserve in store
+              </button>
+              {%- render 'brauz-reserve-in-store' -%}
+            {%- endif -%}
           </span>
         </span>
         <span class="pt-0.5 body-small empty:hidden" data-reserve-message></span>
@@ -146,6 +166,13 @@
       "label": "Store stock",
       "info": "Show Click & Collect and Reserve In-Store availability from each store's Shopify location. Off: follow online stock. Turn on once store inventory is synced.",
       "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "reserve_in_store",
+      "label": "Reserve In-Store button",
+      "info": "Opens the Brauz reservation drawer. Shown only when Reserve In-Store is available at the shopper's store.",
+      "default": true
     }
   ],
   "presets": [{ "name": "Delivery & in-store", "category": "Product" }]

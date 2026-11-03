@@ -1,0 +1,25 @@
+{% doc %}
+  @description
+  Brauz Reserve In-Store loader (built from brauz-buttons-reborn, served from the Brauz CDN). It opens the
+  reservation drawer for any `[data-brauz-ris-open]` button and prefills the form for signed-in customers
+  from `window.Brauz_reserve_in_store_customer_data`. Rendered by the mh-fulfilment block; variant
+  re-renders don't re-run these scripts.
+
+  @example
+  {%- render 'brauz-reserve-in-store' -%}
+{% enddoc %}
+
+{%- if customer -%}
+  <script>
+    window.Brauz_reserve_in_store_customer_data = {
+      first_name: {{ customer.first_name | default: '' | json }},
+      last_name: {{ customer.last_name | default: '' | json }},
+      email: {{ customer.email | default: '' | json }},
+      phone: {{ customer.phone | default: '' | json }}
+    };
+  </script>
+{%- endif -%}
+<script
+  src="https://d3aq2u4yw77ivo.cloudfront.net/reserve-in-store/michael-hill/shopify/reserve-in-store.michaelhill.shopify-poc.dev.js"
+  defer
+></script>

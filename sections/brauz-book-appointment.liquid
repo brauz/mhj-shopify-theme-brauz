@@ -1,0 +1,68 @@
+{%- comment -%}
+  Brauz appointment booking widget for one fixed store (the section's store setting; the shopper's
+  My Store is deliberately not used). The Brauz loader (built from brauz-buttons-reborn, served from
+  the Brauz CDN) renders the booking iframe into #brauz-booking-widget once Brauz_mountBookingWidget
+  is called. The theme's own font files are passed through so the widget matches the storefront.
+{%- endcomment -%}
+
+<div class="px-4 py-8 md:px-10 md:py-12">
+  {%- if section.settings.store_name != blank -%}
+    <p class="mb-6 text-center">
+      Booking at <span class="font-bold">{{ section.settings.store_name | escape }}</span>
+    </p>
+  {%- endif -%}
+  <div id="brauz-booking-widget"></div>
+</div>
+
+<script>
+  (function () {
+    var mount_options = {
+      store_id: {{ section.settings.store_id | json }},
+      fonts: {
+        body_regular: {{ 'mh-soehne-buch.woff2' | asset_url | prepend: 'https:' | json }},
+        body_medium: {{ 'mh-soehne-kraftig.woff2' | asset_url | prepend: 'https:' | json }},
+        heading: {{ 'mh-pp-fragment-glare-light.woff2' | asset_url | prepend: 'https:' | json }}
+      }
+    };
+
+    // The loader defines Brauz_mountBookingWidget once it has initialised, which can land after
+    // this runs, so wait for it (up to ~10s).
+    var attempts = 0;
+    (function mount() {
+      if (typeof window.Brauz_mountBookingWidget === 'function') {
+        window.Brauz_mountBookingWidget(mount_options);
+      } else if (++attempts < 100) {
+        setTimeout(mount, 100);
+      }
+    })();
+  })();
+</script>
+<script
+  src="https://d3aq2u4yw77ivo.cloudfront.net/retailer-appointment/michaelhill/retailer-appointment.michaelhill.shopify-poc.dev.js"
+  defer
+></script>
+
+{% schema %}
+{
+  "name": "Brauz appointment",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "store_id",
+      "label": "Store ID",
+      "info": "The store's Brauz thirdparty identifier (its Shopify location ID). Bourke Street: 91373469887.",
+      "default": "91373469887"
+    },
+    {
+      "type": "text",
+      "id": "store_name",
+      "label": "Store name",
+      "info": "Shown above the widget as \"Booking at …\".",
+      "default": "Bourke Street"
+    }
+  ],
+  "presets": [{ "name": "Brauz appointment" }]
+}
+{% endschema %}
